@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOM Bounce Animation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+            overflow: hidden;
+        }
+
+        #logo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            /* Enforces GPU acceleration for smoother rendering */
+            will-change: transform;
+            backface-visibility: hidden;
+            
+            /* Forces the image (or the fallback shape) to render exactly at 300x300 */
+            width: 300px;
+            height: 300px;
+            
+            /* Fallback styling if logo.png is not found */
+            background-color: #ff0000; 
+            border-radius: 50%; 
+            color: transparent; 
+        }
+    </style>
+</head>
+<body>
+    
+    <img id="logo" src="logo.png" alt="Bouncing Element">
+
+    <script>
+        /**
+         * ==========================================
+         * ASSET FORMATTING NOTE: 
+         * Ensure any custom image file (logo.png) is cropped tightly 
+         * to remove transparent padding. If padding exists, boundary 
+         * collisions will calculate based on the invisible box and 
+         * appear visually inaccurate on screen.
+         * ==========================================
+         */
+
+        /**
+         * Core state configuration for the animation loop.
+         * Asymmetric vectors (dx/dy) prevent immediate infinite corner loops.
+         * Starting at 1,1 prevents the element from getting trapped in an immediate boundary vibration loop.
+         */
+        const state = {
+            dx: 3,
+            dy: 2,
+            x: 1,
+            y: 1
+        };
+
+        const logo = document.getElementById('logo');
+        
+        // Captures initial CSS fallback dimensions
+        let logoWidth = logo.clientWidth;
+        let logoHeight = logo.clientHeight;
+
+        /**
+         * Ensures dimensions are accurately updated if an external image asset successfully loads.
+         */
+        logo.onload = () => {
+            logoWidth = logo.clientWidth;
+            logoHeight = logo.clientHeight;
+        };
+
+        /**
+         * Calculates boundary collisions, updates coordinates, and applies 
+         * hardware-accelerated translation to the DOM element.
+         */
+        function animate() {
+            const maxX = window.innerWidth - logoWidth;
+            const maxY = window.innerHeight - logoHeight;
+
+            // Bounds correction to prevent the element from getting trapped outside the viewport during resize
+            if (state.x > maxX) state.x = maxX;
+            if (state.y > maxY) state.y = maxY;
+
+            // Boundary collision detection
+            if (state.x <= 0 || state.x >= maxX) {
+                state.dx = -state.dx;
+            }
+            if (state.y <= 0 || state.y >= maxY) {
+                state.dy = -state.dy;
+            }
+
+            state.x += state.dx;
+            state.y += state.dy;
+
+            // Math.round strips floating-point values to prevent sub-pixel visual shimmering
+            const renderX = Math.round(state.x);
+            const renderY = Math.round(state.y);
+
+            logo.style.transform = `translate3d(${renderX}px, ${renderY}px, 0)`;
+
+            requestAnimationFrame(animate);
+        }
+
+        /**
+         * Recalculates element dimensions dynamically to maintain collision integrity.
+         */
+        window.addEventListener('resize', () => {
+            logoWidth = logo.clientWidth;
+            logoHeight = logo.clientHeight;
+        });
+
+        // Initialize rendering pipeline
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>
